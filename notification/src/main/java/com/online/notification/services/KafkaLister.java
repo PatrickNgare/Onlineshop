@@ -28,3 +28,10 @@ public class KafkaLister {
         log.info("Sending Email For Order User ... {}", user);
     }
 }
+
+/**
+ * TODO
+ * 1.Complete Order Service
+ * 2.Learn WEBCLIENT non blocking
+ * 3.Kafka Installation
+ */
