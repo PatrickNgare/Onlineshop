@@ -12,16 +12,17 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepo userRepo;
     private final KafkaTemplate<String, String> kafkaTemplate;
+    private final Gson gson;
 
-    public UserServiceImpl(UserRepo userRepo, KafkaTemplate<String, String> kafkaTemplate) {
+    public UserServiceImpl(UserRepo userRepo, KafkaTemplate<String, String> kafkaTemplate, Gson gson) {
         this.userRepo = userRepo;
         this.kafkaTemplate = kafkaTemplate;
+        this.gson = gson;
     }
 
     @Override
     public User createUser(User user) {
         //send a notification
-        Gson gson = new Gson();
         User userSave = userRepo.save(user);
         kafkaTemplate.send("serge_tech_users", gson.toJson(userSave));
         return userSave;
