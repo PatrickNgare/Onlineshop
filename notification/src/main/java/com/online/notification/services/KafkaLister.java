@@ -25,6 +25,6 @@ public class KafkaLister {
     @KafkaListener(topics = "serge_tech_orders", groupId = "group_id")
     void listenerOrders(@Payload String data) {
         User user = gson.fromJson(data, User.class);
-        log.info("Sending Email For User Created ... {}", user);
+        log.info("Sending Email For Order User ... {}", user);
     }
 }
