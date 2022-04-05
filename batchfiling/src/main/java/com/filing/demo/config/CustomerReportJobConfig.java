@@ -11,7 +11,9 @@ import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepScope;
+import org.springframework.batch.core.explore.JobExplorer;
 import org.springframework.batch.core.launch.JobLauncher;
+import org.springframework.batch.core.launch.NoSuchJobException;
 import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemReader;
@@ -22,6 +24,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.Scheduled;
 
+import javax.annotation.PreDestroy;
 import java.util.Arrays;
 
 @Configuration
@@ -32,7 +35,9 @@ public class CustomerReportJobConfig {
     private final JobBuilderFactory jobBuilders;
     private final StepBuilderFactory stepBuilders;
     private final JobLauncher jobLauncher;
+    private final JobExplorer jobs;
     public static final String XML_FILE = "database.xml";
+    private static final String JOB_NAME = "customerReportJob";
 
     @Bean
     public Job customerReportJob() {
@@ -53,7 +58,7 @@ public class CustomerReportJobConfig {
 
     @Bean
     public Step chunkStep() {
-        return stepBuilders.get("chunkStep").<Customer, Customer>chunk(10).reader(reader()).processor(processor()).writer(writer()).build();
+        return stepBuilders.get("chunkStep").<Customer, Customer>chunk(20).reader(reader()).processor(processor()).writer(writer()).build();
     }
 
     @StepScope
@@ -80,5 +85,14 @@ public class CustomerReportJobConfig {
     public void run() throws Exception {
         JobExecution execution = jobLauncher.run(customerReportJob(), new JobParametersBuilder().addLong("uniqueness", System.nanoTime()).toJobParameters());
         log.info("Exit status: {}", execution.getStatus());
+    }
+
+    @PreDestroy
+    public void destroy() throws NoSuchJobException {
+        jobs.getJobNames().forEach(name -> log.info("job name: {}", name));
+        jobs.getJobInstances(JOB_NAME, 0, jobs.getJobInstanceCount(JOB_NAME)).forEach(jobInstance -> {
+            log.info("job instance id {}", jobInstance.getInstanceId());
+        });
+
     }
 }
