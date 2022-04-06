@@ -4,15 +4,10 @@ package com.filing.demo.config;
 import com.filing.demo.models.Customer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.batch.core.Job;
-import org.springframework.batch.core.JobExecution;
-import org.springframework.batch.core.JobParametersBuilder;
 import org.springframework.batch.core.Step;
-import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.explore.JobExplorer;
-import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.batch.core.launch.NoSuchJobException;
 import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.item.ItemProcessor;
@@ -20,9 +15,9 @@ import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.support.CompositeItemProcessor;
 import org.springframework.batch.repeat.RepeatStatus;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.scheduling.annotation.Scheduled;
 
 import javax.annotation.PreDestroy;
 import java.util.Arrays;
@@ -32,17 +27,13 @@ import java.util.Arrays;
 @Slf4j
 public class CustomerReportJobConfig {
 
-    private final JobBuilderFactory jobBuilders;
+
     private final StepBuilderFactory stepBuilders;
-    private final JobLauncher jobLauncher;
     private final JobExplorer jobs;
     public static final String XML_FILE = "database.xml";
     private static final String JOB_NAME = "customerReportJob";
 
-    @Bean
-    public Job customerReportJob() {
-        return jobBuilders.get("customerReportJob").start(taskletStep()).next(chunkStep()).build();
-    }
+
 
     @Bean
     public Step taskletStep() {
@@ -50,6 +41,7 @@ public class CustomerReportJobConfig {
     }
 
     @Bean
+    @Qualifier("tasklet")
     public Tasklet tasklet() {
         return (contribution, chunkContext) -> {
             return RepeatStatus.FINISHED;
@@ -57,6 +49,7 @@ public class CustomerReportJobConfig {
     }
 
     @Bean
+    @Qualifier("chunkStep")
     public Step chunkStep() {
         return stepBuilders.get("chunkStep").<Customer, Customer>chunk(20).reader(reader()).processor(processor()).writer(writer()).build();
     }
@@ -81,11 +74,7 @@ public class CustomerReportJobConfig {
         return processor;
     }
 
-    @Scheduled(fixedRate = 5000)
-    public void run() throws Exception {
-        JobExecution execution = jobLauncher.run(customerReportJob(), new JobParametersBuilder().addLong("uniqueness", System.nanoTime()).toJobParameters());
-        log.info("Exit status: {}", execution.getStatus());
-    }
+
 
     @PreDestroy
     public void destroy() throws NoSuchJobException {
